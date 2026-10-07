@@ -78,3 +78,12 @@ export function usePeople(includeArchived = false) {
     return includeArchived ? all : all.filter((p) => !p.archived)
   }, [includeArchived])
 }
+
+/**
+ * Como useSetting, pero distingue "todavía cargando" de "no existe":
+ * devuelve undefined mientras carga y null si el ajuste no está guardado.
+ */
+export function useSettingLoaded<T>(key: string): T | null | undefined {
+  const r = useLiveQuery(async () => ({ v: ((await db.settings.get(key))?.value ?? null) as T | null }), [key])
+  return r === undefined ? undefined : r.v
+}

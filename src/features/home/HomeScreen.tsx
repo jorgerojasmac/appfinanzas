@@ -17,6 +17,8 @@ import { formatMoney } from '../../domain/money'
 import { accountBalanceLabel, ACCOUNT_TYPE_LABEL } from '../accounts/accountLabels'
 import { TransactionRow } from '../transactions/TransactionRow'
 import { HealthCard } from '../stats/HealthCard'
+import { UpcomingPayments } from '../upcoming/UpcomingPayments'
+import { CushionCard } from '../cushion/CushionCard'
 import { useCardSummaries } from '../cards/CardsScreen'
 import { CardVisual } from '../cards/CardVisual'
 import { paymentText } from '../cards/cardText'
@@ -107,6 +109,10 @@ export function HomeScreen() {
         </div>
         <MonthHint income={thisMonth.income} expense={thisMonth.expense} progress={monthProgress} />
       </Card>
+
+      {transactions.length > 0 && <UpcomingPayments />}
+
+      {transactions.length > 0 && <CushionCard compact />}
 
       {transactions.length > 0 && <HealthCard />}
 

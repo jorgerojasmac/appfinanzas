@@ -1,4 +1,8 @@
-import { ChartPie, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChartPie, ChevronLeft, ChevronRight, ChevronRight as Chevron, Hash } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { txFilters } from '../../app/filterStore'
+import { EMPTY_FILTERS, spendByTag } from '../../domain/filters'
+import { MonthCloseLink } from '../monthClose/MonthCloseSheet'
 import { useMemo, useState } from 'react'
 import { ChartCard, ChartEmpty } from '../../components/charts/ChartTooltip'
 import {
@@ -32,6 +36,7 @@ import {
 import { HealthCard } from './HealthCard'
 
 export function StatsScreen() {
+  const navigate = useNavigate()
   const { ready, transactions, categories, accounts } = useLedger()
   const manualBase = useSetting<number | null>('incomeBaseManual', null)
   const [period, setPeriod] = useState(() => makePeriod('month', currentMonth()))
@@ -54,6 +59,7 @@ export function StatsScreen() {
     const nwMonths = period.kind === 'year' ? period.months.filter((m) => m <= now) : last12
     return {
       t: totals(inP),
+      tags: spendByTag(inP),
       slices: categorySlices(inP, categories),
       bars: barMonths.map((m) => ({ month: m, income: byMonth.get(m)?.income ?? 0, expense: byMonth.get(m)?.expense ?? 0 })),
       refMonth,
@@ -117,6 +123,7 @@ export function StatsScreen() {
       </div>
 
       <HealthCard />
+      <MonthCloseLink />
 
       {/* Resumen del período */}
       <div className="grid grid-cols-2 gap-3">
@@ -155,6 +162,34 @@ export function StatsScreen() {
           calendar={period.kind === 'month'}
           months={period.kind === 'year' ? period.months : undefined}
         />
+      </ChartCard>
+
+      <ChartCard title="Gasto por etiqueta" subtitle={`${period.label} · toca una para ver sus movimientos`}>
+        {data.tags.length ? (
+          <ul className="-mx-1">
+            {data.tags.slice(0, 8).map((tg) => (
+              <li key={tg.tag}>
+                <button
+                  onClick={() => {
+                    txFilters.replace({ ...EMPTY_FILTERS, tags: [tg.tag], from: period.start, to: period.end })
+                    navigate('/movimientos')
+                  }}
+                  className="flex min-h-11 w-full items-center gap-2 rounded-[10px] px-1 text-left active:bg-fill"
+                >
+                  <Hash size={16} strokeWidth={2} className="text-blue" />
+                  <span className="flex-1 truncate text-[15px]">{tg.tag}</span>
+                  <span className="text-[13px] text-label-2">
+                    {tg.count} {tg.count === 1 ? 'gasto' : 'gastos'}
+                  </span>
+                  <span className="tabular w-24 text-right text-[15px] font-medium">{formatMoney(tg.total)}</span>
+                  <Chevron size={16} className="text-label-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ChartEmpty>Aún no usas etiquetas en este período. Agrégalas al registrar un gasto con el botón #.</ChartEmpty>
+        )}
       </ChartCard>
 
       <ChartCard

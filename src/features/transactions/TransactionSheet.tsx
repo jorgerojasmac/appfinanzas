@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowLeftRight, Calendar, ChevronDown, Trash2, Users } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight, Calendar, ChevronDown, Hash, Trash2, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { personName, usePeopleMap } from '../../app/PeopleContext'
 import { ui, useUI } from '../../app/uiStore'
 import { Avatar } from '../../components/ui/Avatar'
 import { buildSplit, draftFromSplit, ME, type SplitDraft } from '../../domain/shared'
 import { SplitSheet } from '../shared/SplitSheet'
+import { TagSheet } from '../tags/TagSheet'
 import { deleteTransaction, getSetting, restoreTransaction, saveTransaction } from '../../db/repo'
 import type { Account, Category, TxType } from '../../db/types'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
@@ -54,6 +55,8 @@ function TransactionSheetInner() {
   const [shake, setShake] = useState(0)
   const [split, setSplit] = useState<SplitDraft>()
   const [splitOpen, setSplitOpen] = useState(false)
+  const [tags, setTags] = useState<string[]>([])
+  const [tagsOpen, setTagsOpen] = useState(false)
   const people = usePeople() ?? []
   const peopleMap = usePeopleMap()
 
@@ -71,6 +74,7 @@ function TransactionSheetInner() {
       setDate(edit.date)
       setNote(edit.note)
       setSplit(edit.split ? draftFromSplit(edit.split) : undefined)
+      setTags(edit.tags)
       return
     }
     const preset = txSheet.preset ?? {}
@@ -82,6 +86,7 @@ function TransactionSheetInner() {
     setToAccountId(preset.toAccountId)
     setAccountId(undefined)
     setSplit(undefined)
+    setTags([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txSheet.open])
 
@@ -159,7 +164,7 @@ function TransactionSheetInner() {
       categoryId: type === 'transfer' ? undefined : categoryId,
       date,
       note,
-      tags: edit?.tags ?? [],
+      tags,
       split: result?.split,
       recurringId: edit?.recurringId,
       sample: edit?.sample,
@@ -254,6 +259,14 @@ function TransactionSheetInner() {
                 className="h-10 min-w-0 flex-1 rounded-full bg-card px-4 text-[16px] outline-none placeholder:text-label-3"
               />
               <DateChip value={date} onChange={setDate} />
+              <button
+                type="button"
+                aria-label="Etiquetas"
+                onClick={() => setTagsOpen(true)}
+                className={`pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tags.length ? 'bg-blue text-white' : 'bg-card text-label-2'}`}
+              >
+                <Hash size={18} strokeWidth={1.75} />
+              </button>
               {type === 'expense' && (
                 <button
                   type="button"
@@ -265,6 +278,16 @@ function TransactionSheetInner() {
                 </button>
               )}
             </div>
+            {tags.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTagsOpen(true)}
+                className="flex w-full items-center gap-1.5 px-1 text-left text-[13px] text-label-2"
+              >
+                <Hash size={14} strokeWidth={2} className="shrink-0" />
+                <span className="truncate">{tags.map((t) => `#${t}`).join('  ')}</span>
+              </button>
+            )}
             {activeSplit && (
               <button
                 type="button"
@@ -308,6 +331,7 @@ function TransactionSheetInner() {
         </div>
       </Sheet>
 
+      <TagSheet open={tagsOpen} onClose={() => setTagsOpen(false)} selected={tags} onChange={setTags} transactions={transactions} />
       <SplitSheet
         open={splitOpen}
         onClose={() => setSplitOpen(false)}

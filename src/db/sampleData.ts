@@ -39,6 +39,14 @@ const RULE_BY_NOTE: Record<string, string> = {
   'iCloud+': 'sample-sub-icloud',
 }
 
+/** Etiquetas de ejemplo según la nota del movimiento */
+const TAGS_BY_NOTE: Record<string, string[]> = {
+  'Pasajes vacaciones': ['viaje'],
+  'Cuota maestría': ['maestria'],
+  'Compras de la casa': ['casa'],
+  'Cena con amigos': ['amigos'],
+}
+
 // Ingresos por trabajo de cada mes (USD): muy variables a propósito
 const WORK_INCOME = [2800, 4200, 1900, 3600, 5100, 2300, 3900, 3100, 2600]
 
@@ -57,7 +65,7 @@ export function buildSampleTransactions(today = todayISO()): Transaction[] {
       id: newId(),
       myAmount: p.amount,
       note: '',
-      tags: [],
+      tags: TAGS_BY_NOTE[p.note ?? ''] ?? [],
       sample: true,
       createdAt: now + txs.length,
       updatedAt: now,
@@ -113,7 +121,11 @@ export function buildSampleTransactions(today = todayISO()): Transaction[] {
     if (r() > 0.6) expense('Salud', between(20, 90), rand(), bank, 'Farmacia')
     if (r() > 0.7) card('Cuidado personal', between(15, 40), rand(), 'Peluquería')
     if (r() > 0.85) card('Regalos', between(30, 80), rand())
-    if (i === 3) card('Viajes', 42000, day(17), 'Pasajes vacaciones')
+    if (i === 3) {
+      card('Viajes', 42000, day(17), 'Pasajes vacaciones')
+      add({ type: 'expense', amount: 31000, date: day(20), accountId: visa, categoryId: slug('Viajes'), note: 'Hotel', tags: ['viaje'] })
+      add({ type: 'expense', amount: 8600, date: day(21), accountId: visa, categoryId: slug('Restaurantes'), note: 'Cena en la playa', tags: ['viaje'] })
+    }
 
     // Pago de la tarjeta: transferencia banco → Visa por lo gastado el mes anterior
     if (prevCardSpend > 0) {
@@ -148,7 +160,7 @@ function addSharedSamples(txs: Transaction[], today: string, now: number) {
   const start = addMonths(currentMonth(), -MONTHS_BACK)
   const push = (t: Omit<Transaction, 'id' | 'tags' | 'sample' | 'createdAt' | 'updatedAt'>) => {
     if (t.date > today) return
-    txs.push({ ...t, id: newId(), tags: [], sample: true, createdAt: now + txs.length, updatedAt: now })
+    txs.push({ ...t, id: newId(), tags: TAGS_BY_NOTE[t.note] ?? [], sample: true, createdAt: now + txs.length, updatedAt: now })
   }
   for (let i = 0; i <= MONTHS_BACK; i++) {
     const m = addMonths(start, i)

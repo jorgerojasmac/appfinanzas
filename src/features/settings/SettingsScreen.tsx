@@ -1,4 +1,7 @@
-import { FlaskConical, LayoutGrid, Trash2, Wallet } from 'lucide-react'
+import { FlaskConical, LayoutGrid, Lock, Trash2, Wallet } from 'lucide-react'
+import { Toggle } from '../../components/ui/Controls'
+import { PinSetupSheet } from '../lock/PinSetupSheet'
+import type { PinRecord } from '../../domain/pin'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clearSampleData, loadSampleData } from '../../db/sampleData'
@@ -25,6 +28,8 @@ export function SettingsScreen() {
   const sampleLoaded = useSetting<boolean>('sampleLoaded', false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [busy, setBusy] = useState(false)
+  const pin = useSetting<PinRecord | null>('pin', null)
+  const [pinMode, setPinMode] = useState<null | 'create' | 'change' | 'remove'>(null)
 
   const load = async () => {
     setBusy(true)
@@ -57,6 +62,18 @@ export function SettingsScreen() {
       </Group>
 
       <Group
+        header="Privacidad"
+        footer="Pide un PIN de 4 dígitos al abrir la app y al volver después de un minuto. Protege de miradas indiscretas, pero no cifra tus datos."
+      >
+        <div className="flex min-h-11 items-center gap-3 bg-card px-4 py-1.5" style={{ ['--sep-inset' as string]: '58px' }}>
+          <SettingsIcon color="gray"><Lock size={17} strokeWidth={2} /></SettingsIcon>
+          <span className="flex-1 text-[17px]">Bloqueo con PIN</span>
+          <Toggle checked={!!pin} onChange={(on) => setPinMode(on ? 'create' : 'remove')} label="Bloqueo con PIN" />
+        </div>
+        {pin && <Row inset={58} title={<span className="text-blue">Cambiar PIN</span>} onClick={() => setPinMode('change')} />}
+      </Group>
+
+      <Group
         header="Datos de ejemplo"
         footer="Carga meses de movimientos ficticios con ingresos irregulares para ver los dashboards llenos. Se borran sin tocar tus datos reales."
       >
@@ -84,6 +101,7 @@ export function SettingsScreen() {
         Tus datos se guardan solo en este dispositivo.
       </p>
 
+      <PinSetupSheet open={pinMode !== null} mode={pinMode ?? 'create'} existing={pin} onClose={() => setPinMode(null)} />
       <ActionSheet
         open={confirmClear}
         onClose={() => setConfirmClear(false)}

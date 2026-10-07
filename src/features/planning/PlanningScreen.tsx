@@ -5,6 +5,7 @@ import { paymentText } from '../cards/cardText'
 import { IDEAL_USAGE, totalUsage } from '../../domain/cards'
 import { personBalances } from '../../domain/shared'
 import { balanceLabel } from '../shared/SharedScreen'
+import { CushionCard } from '../cushion/CushionCard'
 import { useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
@@ -141,6 +142,8 @@ export function PlanningScreen() {
           </div>
         )}
       </Section>
+
+      <CushionCard />
 
       <Section title="Metas de ahorro" icon={<Target size={18} />} color="var(--blue)" to="/planificacion/metas">
         {activeGoals.length === 0 ? (

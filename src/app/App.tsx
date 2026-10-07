@@ -10,8 +10,11 @@ import { GoalWatcher } from '../features/planning/GoalWatcher'
 import { PlanningScreen } from '../features/planning/PlanningScreen'
 import { CardsScreen } from '../features/cards/CardsScreen'
 import { SharedScreen } from '../features/shared/SharedScreen'
+import { CushionScreen } from '../features/cushion/CushionScreen'
 import { SettleSheet } from '../features/shared/SettleSheet'
 import { PeopleProvider } from './PeopleContext'
+import { LockScreen } from '../features/lock/LockScreen'
+import { MonthCloseSheet } from '../features/monthClose/MonthCloseSheet'
 import { RecurringScreen } from '../features/planning/RecurringScreen'
 import { SubscriptionsScreen } from '../features/planning/SubscriptionsScreen'
 import { AccountDetailScreen } from '../features/accounts/AccountDetailScreen'
@@ -59,6 +62,7 @@ function AnimatedRoutes() {
           <Route path="/planificacion/recurrentes" element={<RecurringScreen />} />
           <Route path="/planificacion/tarjetas" element={<CardsScreen />} />
           <Route path="/planificacion/compartidos" element={<SharedScreen />} />
+          <Route path="/planificacion/colchon" element={<CushionScreen />} />
           <Route path="/ajustes" element={<SettingsScreen />} />
           <Route path="/ajustes/categorias" element={<CategoriesScreen />} />
           <Route path="/ajustes/cuentas" element={<AccountsScreen />} />
@@ -98,6 +102,8 @@ export function App() {
         <SettleSheet />
         <ToastHost />
         <ConfettiHost />
+        <MonthCloseSheet />
+        <LockScreen />
         <GoalWatcher />
         <DevIphoneOverlay />
       </HashRouter>

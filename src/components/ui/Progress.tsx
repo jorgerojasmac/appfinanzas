@@ -7,9 +7,9 @@ export function ProgressBar({ ratio, color, height = 8 }: { ratio: number; color
     <div className="overflow-hidden rounded-full bg-fill" style={{ height }}>
       <motion.div
         className="h-full rounded-full"
-        style={{ background: color }}
+        style={{ backgroundColor: color }}
         initial={{ width: 0 }}
-        animate={{ width: `${pct > 0 ? Math.max(pct, 3) : 0}%`, backgroundColor: color }}
+        animate={{ width: `${pct > 0 ? Math.max(pct, 3) : 0}%` }}
         transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
       />
     </div>

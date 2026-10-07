@@ -86,11 +86,14 @@ export function TransactionRow({ tx, categoryMap, accountMap, perspective }: Pro
         <CategoryIcon icon={d.icon} color={d.color} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[17px]">{d.title}</div>
-          {d.subtitle && (
+          {(d.subtitle || tx.tags.length > 0) && (
             <div className="flex items-center gap-1 truncate text-[15px] leading-5 text-label-2">
               {tx.split && <Users size={13} strokeWidth={2} className="shrink-0" />}
               {tx.recurringId && <Repeat size={13} strokeWidth={2} className="shrink-0" aria-label="Recurrente" />}
-              <span className="truncate">{d.subtitle}</span>
+              <span className="truncate">
+                {d.subtitle}
+                {tx.tags.length > 0 && <span className="text-blue">{`${d.subtitle ? ' · ' : ''}${tx.tags.map((t) => `#${t}`).join(' ')}`}</span>}
+              </span>
             </div>
           )}
         </div>
