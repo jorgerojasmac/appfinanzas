@@ -13,6 +13,7 @@ import { SharedScreen } from '../features/shared/SharedScreen'
 import { CushionScreen } from '../features/cushion/CushionScreen'
 import { SettleSheet } from '../features/shared/SettleSheet'
 import { PeopleProvider } from './PeopleContext'
+import { DbGuard } from './DbGuard'
 import { LockScreen } from '../features/lock/LockScreen'
 import { MonthCloseSheet } from '../features/monthClose/MonthCloseSheet'
 import { RecurringScreen } from '../features/planning/RecurringScreen'
@@ -31,14 +32,31 @@ const StatsScreen = lazy(() => import('../features/stats/StatsScreen').then((m) 
 const HealthScreen = lazy(() => import('../features/stats/HealthScreen').then((m) => ({ default: m.HealthScreen })))
 const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<div className="min-h-dvh" />}>{children}</Suspense>
 
+const scrollMemory = new Map<string, number>()
+
 const TAB_ROOTS = ['/', '/movimientos', '/estadisticas', '/planificacion', '/ajustes']
 
 function AnimatedRoutes() {
   const location = useLocation()
   const isRoot = TAB_ROOTS.includes(location.pathname)
 
+  // Cada pestaña recuerda dónde quedó el scroll; las pantallas internas empiezan arriba
   useEffect(() => {
-    window.scrollTo(0, 0)
+    const path = location.pathname
+    const saved = TAB_ROOTS.includes(path) ? scrollMemory.get(path) ?? 0 : 0
+    // Esperar a que la lista cargue lo suficiente para poder volver a esa posición
+    let tries = 0
+    let timer = 0
+    const restore = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      if (max >= saved || tries++ > 12) window.scrollTo(0, saved)
+      else timer = window.setTimeout(restore, 50)
+    }
+    restore()
+    return () => {
+      clearTimeout(timer)
+      if (TAB_ROOTS.includes(path)) scrollMemory.set(path, window.scrollY)
+    }
   }, [location.pathname])
 
   return (
@@ -90,6 +108,14 @@ function useRecurringRunner() {
 }
 
 export function App() {
+  return (
+    <DbGuard>
+      <AppContent />
+    </DbGuard>
+  )
+}
+
+function AppContent() {
   useRecurringRunner()
   return (
     <MotionConfig reducedMotion="user">

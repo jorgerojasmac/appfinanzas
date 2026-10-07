@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Account, Category, Transaction } from '../../db/types'
 import { Group } from '../../components/ui/List'
@@ -59,9 +60,21 @@ export function TransactionList({
             ) : undefined
           }
         >
-          {g.items.map((tx) => (
-            <TransactionRow key={tx.id} tx={tx} categoryMap={categoryMap} accountMap={accountMap} perspective={perspective} />
-          ))}
+          <AnimatePresence initial={false}>
+            {g.items.map((tx) => (
+              // Al borrar, la fila se colapsa en vez de desaparecer de golpe
+              <motion.div
+                key={tx.id}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+                style={{ overflow: 'hidden', ['--sep-inset' as string]: '64px' }}
+              >
+                <TransactionRow tx={tx} categoryMap={categoryMap} accountMap={accountMap} perspective={perspective} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </Group>
       ))}
       <div ref={sentinel} />

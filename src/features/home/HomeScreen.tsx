@@ -17,6 +17,7 @@ import { formatMoney } from '../../domain/money'
 import { accountBalanceLabel, ACCOUNT_TYPE_LABEL } from '../accounts/accountLabels'
 import { TransactionRow } from '../transactions/TransactionRow'
 import { HealthCard } from '../stats/HealthCard'
+import { BackupReminder } from '../backup/BackupReminder'
 import { UpcomingPayments } from '../upcoming/UpcomingPayments'
 import { CushionCard } from '../cushion/CushionCard'
 import { useCardSummaries } from '../cards/CardsScreen'
@@ -55,6 +56,8 @@ export function HomeScreen() {
 
   return (
     <Screen title="Inicio" eyebrow={formatLongToday()}>
+      <BackupReminder />
+
       {/* Saldo disponible */}
       <Card>
         <div className="flex items-center gap-2 text-[15px] text-label-2">

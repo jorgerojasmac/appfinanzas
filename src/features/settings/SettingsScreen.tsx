@@ -1,6 +1,7 @@
 import { FlaskConical, LayoutGrid, Lock, Trash2, Wallet } from 'lucide-react'
 import { Toggle } from '../../components/ui/Controls'
 import { PinSetupSheet } from '../lock/PinSetupSheet'
+import { BackupSection } from '../backup/BackupSection'
 import type { PinRecord } from '../../domain/pin'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -60,6 +61,8 @@ export function SettingsScreen() {
           onClick={() => navigate('/ajustes/cuentas')}
         />
       </Group>
+
+      <BackupSection />
 
       <Group
         header="Privacidad"
