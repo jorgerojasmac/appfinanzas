@@ -14,13 +14,19 @@ export function StatusBadge({ status }: { status: Status }) {
   const Icon = status === 'good' ? CircleCheck : status === 'warn' ? TriangleAlert : status === 'alert' ? CircleAlert : CircleDashed
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium"
-      style={{ color: STATUS_COLOR[status], background: `color-mix(in srgb, ${STATUS_COLOR[status]} 14%, transparent)` }}
+      className="relative inline-flex shrink-0 items-center gap-1 overflow-hidden rounded-full px-2 py-0.5 text-[12px] font-medium"
+      style={{ color: STATUS_COLOR[status] }}
     >
-      <Icon size={13} strokeWidth={2.25} />
-      {STATUS_LABEL[status]}
+      <Tint color={STATUS_COLOR[status]} />
+      <Icon size={13} strokeWidth={2.25} className="relative" />
+      <span className="relative">{STATUS_LABEL[status]}</span>
     </span>
   )
+}
+
+/** Fondo suave del color dado (capa con opacidad; funciona en cualquier Safari). */
+export function Tint({ color, opacity = 0.14 }: { color: string; opacity?: number }) {
+  return <span aria-hidden className="absolute inset-0" style={{ background: color, opacity }} />
 }
 
 /** Anillo con el puntaje global */

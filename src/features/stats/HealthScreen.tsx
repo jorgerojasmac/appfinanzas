@@ -6,7 +6,7 @@ import { Card, Group } from '../../components/ui/List'
 import { Screen } from '../../components/ui/Screen'
 import { useHealth } from '../../hooks/health'
 import { scoreLabel, type IndicatorId } from '../../domain/health'
-import { ScoreRing, StatusBadge, STATUS_COLOR } from './HealthBits'
+import { ScoreRing, StatusBadge, STATUS_COLOR, Tint } from './HealthBits'
 
 const ICON: Record<IndicatorId, LucideIcon> = {
   base: Scale,
@@ -79,10 +79,11 @@ export function HealthScreen() {
             <div key={ind.id} className="bg-card px-4 py-3" style={{ ['--sep-inset' as string]: '56px' }}>
               <div className="flex items-start gap-3">
                 <span
-                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                  style={{ color: STATUS_COLOR[ind.status], background: `color-mix(in srgb, ${STATUS_COLOR[ind.status]} 14%, transparent)` }}
+                  className="relative mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                  style={{ color: STATUS_COLOR[ind.status] }}
                 >
-                  <Icon size={16} strokeWidth={1.75} />
+                  <Tint color={STATUS_COLOR[ind.status]} />
+                  <Icon size={16} strokeWidth={1.75} className="relative" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
