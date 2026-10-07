@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { removeAccount, saveAccount } from '../../db/repo'
 import type { Account, AccountType, ColorName, SavingsPurpose } from '../../db/types'
@@ -11,6 +11,7 @@ import { toast } from '../../components/ui/Toast'
 import { centsToInput, formatMoney, parseMoney } from '../../domain/money'
 import { StyleFields } from '../settings/StyleFields'
 import { DEFAULT_ACCOUNT_ICON } from './accountLabels'
+import { useOnOpen } from '../../hooks/useOnOpen'
 
 const DEFAULT_COLOR: Record<AccountType, ColorName> = {
   cash: 'green',
@@ -45,8 +46,7 @@ export function AccountSheet({
   const [purpose, setPurpose] = useState<SavingsPurpose>('general')
   const [confirm, setConfirm] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
+  useOnOpen(open, () => {
     const a = account
     setName(a?.name ?? '')
     setType(a?.type ?? 'bank')
@@ -58,7 +58,7 @@ export function AccountSheet({
     setStatementDay(a?.statementDay ? String(a.statementDay) : '')
     setDueDay(a?.dueDay ? String(a.dueDay) : '')
     setPurpose(a?.savingsPurpose ?? 'general')
-  }, [open, account])
+  })
 
   const changeType = (t: AccountType) => {
     // Si el icono/color eran los de por defecto, se actualizan al nuevo tipo

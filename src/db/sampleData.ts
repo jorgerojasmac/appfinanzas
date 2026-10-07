@@ -6,7 +6,7 @@ import { addMonths, currentMonth, dateInMonth, daysInMonth, todayISO, type Month
 import { setSetting } from './repo'
 import { db, newId } from './schema'
 import { defaultAccounts, slug } from './seed'
-import type { Account, Transaction } from './types'
+import type { Account, Budget, Goal, GoalEntry, RecurringRule, Transaction } from './types'
 
 const MONTHS_BACK = 8
 
@@ -26,6 +26,17 @@ const SAMPLE_ACCOUNTS: Account[] = [
   { id: 'sample-emergencia', name: 'Fondo de emergencia', type: 'savings', openingBalance: 250000, icon: 'Shield', color: 'mint', order: 12, archived: false, savingsPurpose: 'emergency', sample: true, createdAt: 0 },
   { id: 'sample-colchon', name: 'Fondo colchón', type: 'savings', openingBalance: 80000, icon: 'PiggyBank', color: 'orange', order: 13, archived: false, savingsPurpose: 'cushion', sample: true, createdAt: 0 },
 ]
+
+/** Movimientos del historial que pertenecen a una regla recurrente (por su nota) */
+const RULE_BY_NOTE: Record<string, string> = {
+  Arriendo: 'sample-rule-arriendo',
+  Internet: 'sample-rule-internet',
+  'Cuota maestría': 'sample-rule-maestria',
+  'Plan celular': 'sample-rule-celular',
+  Netflix: 'sample-sub-netflix',
+  Spotify: 'sample-sub-spotify',
+  'iCloud+': 'sample-sub-icloud',
+}
 
 // Ingresos por trabajo de cada mes (USD): muy variables a propósito
 const WORK_INCOME = [2800, 4200, 1900, 3600, 5100, 2300, 3900, 3100, 2600]
@@ -53,7 +64,7 @@ export function buildSampleTransactions(today = todayISO()): Transaction[] {
     })
   }
   const expense = (cat: string, amount: number, date: string, accountId: string, note = '') =>
-    add({ type: 'expense', amount, date, accountId, categoryId: slug(cat), note })
+    add({ type: 'expense', amount, date, accountId, categoryId: slug(cat), note, recurringId: RULE_BY_NOTE[note] })
 
   const start = addMonths(currentMonth(), -MONTHS_BACK)
   let prevCardSpend = 0
@@ -123,8 +134,84 @@ export function buildSampleTransactions(today = todayISO()): Transaction[] {
   return txs
 }
 
+/** Próxima fecha con ese día del mes, a partir de mañana (para no duplicar el historial). */
+function nextOn(day: number, today = todayISO()): string {
+  const thisMonth = dateInMonth(currentMonth(), day)
+  return thisMonth > today ? thisMonth : dateInMonth(addMonths(currentMonth(), 1), day)
+}
+
+function buildSampleRules(): RecurringRule[] {
+  const rule = (p: Partial<RecurringRule> & Pick<RecurringRule, 'id' | 'name' | 'amount' | 'kind'>, day: number): RecurringRule => ({
+    type: 'expense',
+    accountId: 'acc-banco',
+    frequency: 'monthly',
+    interval: 1,
+    nextDate: nextOn(day),
+    anchorDay: day,
+    active: true,
+    sample: true,
+    createdAt: Date.now(),
+    ...p,
+  })
+  return [
+    rule({ id: 'sample-rule-arriendo', kind: 'recurring', name: 'Arriendo', amount: 75000, categoryId: slug('Vivienda') }, 1),
+    rule({ id: 'sample-rule-maestria', kind: 'recurring', name: 'Cuota maestría', amount: 22000, categoryId: slug('Educación') }, 3),
+    rule({ id: 'sample-rule-internet', kind: 'recurring', name: 'Internet', amount: 4500, categoryId: slug('Servicios') }, 12),
+    rule({ id: 'sample-rule-celular', kind: 'recurring', name: 'Plan celular', amount: 2500, categoryId: slug('Servicios') }, 15),
+    rule({ id: 'sample-sub-netflix', kind: 'subscription', name: 'Netflix', amount: 1549, accountId: 'sample-visa', categoryId: slug('Suscripciones'), icon: 'Clapperboard', color: 'red' }, 14),
+    rule({ id: 'sample-sub-spotify', kind: 'subscription', name: 'Spotify', amount: 1099, accountId: 'sample-visa', categoryId: slug('Suscripciones'), icon: 'Music', color: 'green', review: true }, 18),
+    rule({ id: 'sample-sub-icloud', kind: 'subscription', name: 'iCloud+', amount: 299, accountId: 'sample-visa', categoryId: slug('Suscripciones'), icon: 'Globe', color: 'cyan' }, 22),
+    rule({ id: 'sample-sub-office', kind: 'subscription', name: 'Office 365', amount: 9999, accountId: 'sample-visa', categoryId: slug('Suscripciones'), icon: 'Laptop', color: 'orange', frequency: 'yearly', nextDate: dateInMonth(addMonths(currentMonth(), 3), 9) }, 9),
+  ]
+}
+
+function buildSampleBudgets(): Budget[] {
+  const b = (cat: string, p: Partial<Budget>): Budget => ({ id: `sample-budget-${slug(cat)}`, categoryId: slug(cat), mode: 'fixed', sample: true, createdAt: Date.now(), ...p })
+  return [
+    b('Vivienda', { amount: 75000 }),
+    b('Servicios', { amount: 13000 }),
+    b('Alimentación', { mode: 'percent', percent: 18 }),
+    b('Restaurantes', { mode: 'percent', percent: 6 }),
+    b('Transporte', { mode: 'percent', percent: 5 }),
+    b('Entretenimiento', { amount: 5000 }),
+    b('Compras', { amount: 8000 }),
+    b('Suscripciones', { amount: 3000 }),
+  ]
+}
+
+function buildSampleGoals(): { goals: Goal[]; entries: GoalEntry[] } {
+  const now = Date.now()
+  const goals: Goal[] = [
+    { id: 'sample-goal-japon', name: 'Viaje a Japón', icon: 'Plane', color: 'pink', target: 400000, targetDate: dateInMonth(addMonths(currentMonth(), 10), 1), order: 0, sample: true, createdAt: now },
+    { id: 'sample-goal-emergencia', name: 'Fondo de emergencia', icon: 'Shield', color: 'mint', target: 600000, accountId: 'sample-emergencia', order: 1, sample: true, createdAt: now },
+    { id: 'sample-goal-laptop', name: 'Laptop nueva', icon: 'Laptop', color: 'indigo', target: 120000, order: 2, completedAt: now, sample: true, createdAt: now },
+  ]
+  const entry = (goalId: string, amount: number, monthsAgo: number): GoalEntry => ({
+    id: newId(),
+    goalId,
+    amount,
+    date: dateInMonth(addMonths(currentMonth(), -monthsAgo), 26),
+    note: '',
+    sample: true,
+    createdAt: now - monthsAgo,
+  })
+  return {
+    goals,
+    entries: [
+      entry('sample-goal-japon', 50000, 5),
+      entry('sample-goal-japon', 80000, 3),
+      entry('sample-goal-japon', 30000, 2),
+      entry('sample-goal-japon', 40000, 1),
+      entry('sample-goal-laptop', 60000, 6),
+      entry('sample-goal-laptop', 60000, 4),
+    ],
+  }
+}
+
+const SAMPLE_TABLES = () => [db.accounts, db.transactions, db.settings, db.budgets, db.goals, db.goalEntries, db.recurring]
+
 export async function loadSampleData() {
-  await db.transaction('rw', db.accounts, db.transactions, db.settings, async () => {
+  await db.transaction('rw', SAMPLE_TABLES(), async () => {
     await clearSampleRows()
     const now = Date.now()
     await db.accounts.bulkPut(SAMPLE_ACCOUNTS.map((a) => ({ ...a, createdAt: now })))
@@ -135,6 +222,14 @@ export async function loadSampleData() {
       else if (existing.archived) await db.accounts.update(base.id, { archived: false })
     }
     await db.transactions.bulkAdd(buildSampleTransactions())
+    await db.recurring.bulkPut(buildSampleRules())
+    // Un presupuesto por categoría: los de ejemplo no pisan presupuestos reales
+    for (const b of buildSampleBudgets()) {
+      if (!(await db.budgets.where('categoryId').equals(b.categoryId).count())) await db.budgets.add(b)
+    }
+    const { goals, entries } = buildSampleGoals()
+    await db.goals.bulkPut(goals)
+    await db.goalEntries.bulkAdd(entries)
     await setSetting('sampleLoaded', true)
   })
 }
@@ -142,10 +237,14 @@ export async function loadSampleData() {
 async function clearSampleRows() {
   await db.transactions.filter((t) => !!t.sample).delete()
   await db.accounts.filter((a) => !!a.sample).delete()
+  await db.budgets.filter((b) => !!b.sample).delete()
+  await db.goals.filter((g) => !!g.sample).delete()
+  await db.goalEntries.filter((e) => !!e.sample).delete()
+  await db.recurring.filter((r) => !!r.sample).delete()
 }
 
 export async function clearSampleData() {
-  await db.transaction('rw', db.accounts, db.transactions, db.settings, async () => {
+  await db.transaction('rw', SAMPLE_TABLES(), async () => {
     await clearSampleRows()
     await setSetting('sampleLoaded', false)
   })

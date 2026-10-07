@@ -109,3 +109,73 @@ export interface Setting {
   key: string
   value: unknown
 }
+
+/** Presupuesto mensual de una categoría de gasto. */
+export interface Budget {
+  id: string
+  categoryId: string
+  /** Monto fijo o porcentaje del ingreso base */
+  mode: 'fixed' | 'percent'
+  amount?: Cents
+  /** 12.5 = 12.5 % del ingreso base */
+  percent?: number
+  sample?: boolean
+  createdAt: number
+}
+
+export interface Goal {
+  id: string
+  name: string
+  icon: string
+  color: ColorName
+  target: Cents
+  targetDate?: ISODate
+  /** Si está vinculada, el progreso es el saldo de esa cuenta de ahorro */
+  accountId?: string
+  completedAt?: number
+  order: number
+  sample?: boolean
+  createdAt: number
+}
+
+/** Aporte (positivo) o retiro (negativo) de una meta no vinculada a cuenta. */
+export interface GoalEntry {
+  id: string
+  goalId: string
+  amount: Cents
+  date: ISODate
+  note: string
+  sample?: boolean
+  createdAt: number
+}
+
+export type Frequency = 'weekly' | 'monthly' | 'yearly'
+
+/**
+ * Regla que genera movimientos sola. `kind: 'subscription'` son las
+ * suscripciones (siempre gastos), con estado "en revisión" opcional.
+ */
+export interface RecurringRule {
+  id: string
+  kind: 'recurring' | 'subscription'
+  name: string
+  type: 'income' | 'expense' | 'transfer'
+  amount: Cents
+  accountId?: string
+  toAccountId?: string
+  categoryId?: string
+  frequency: Frequency
+  interval: number
+  /** Próxima fecha en que se generará el movimiento */
+  nextDate: ISODate
+  /** Día del mes de referencia (para que el 31 vuelva a ser 31 tras febrero) */
+  anchorDay: number
+  endDate?: ISODate
+  active: boolean
+  /** Solo suscripciones: marcada para decidir si cancelarla */
+  review?: boolean
+  icon?: string
+  color?: ColorName
+  sample?: boolean
+  createdAt: number
+}

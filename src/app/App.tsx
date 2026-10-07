@@ -1,8 +1,16 @@
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
-import { CalendarRange, ChartPie } from 'lucide-react'
+import { ChartPie } from 'lucide-react'
 import { useEffect } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { ToastHost } from '../components/ui/Toast'
+import { ConfettiHost } from '../components/ui/Confetti'
+import { toast, ToastHost } from '../components/ui/Toast'
+import { runRecurring } from '../db/planning'
+import { BudgetsScreen } from '../features/planning/BudgetsScreen'
+import { GoalsScreen } from '../features/planning/GoalsScreen'
+import { GoalWatcher } from '../features/planning/GoalWatcher'
+import { PlanningScreen } from '../features/planning/PlanningScreen'
+import { RecurringScreen } from '../features/planning/RecurringScreen'
+import { SubscriptionsScreen } from '../features/planning/SubscriptionsScreen'
 import { AccountDetailScreen } from '../features/accounts/AccountDetailScreen'
 import { HomeScreen } from '../features/home/HomeScreen'
 import { Placeholder } from '../features/Placeholder'
@@ -45,16 +53,11 @@ function AnimatedRoutes() {
               />
             }
           />
-          <Route
-            path="/planificacion"
-            element={
-              <Placeholder
-                title="Planificación"
-                icon={<CalendarRange size={28} strokeWidth={1.5} />}
-                message="Presupuestos, metas, recurrentes y suscripciones llegan en la fase 2; tarjetas y gastos compartidos en la fase 3."
-              />
-            }
-          />
+          <Route path="/planificacion" element={<PlanningScreen />} />
+          <Route path="/planificacion/presupuestos" element={<BudgetsScreen />} />
+          <Route path="/planificacion/metas" element={<GoalsScreen />} />
+          <Route path="/planificacion/suscripciones" element={<SubscriptionsScreen />} />
+          <Route path="/planificacion/recurrentes" element={<RecurringScreen />} />
           <Route path="/ajustes" element={<SettingsScreen />} />
           <Route path="/ajustes/categorias" element={<CategoriesScreen />} />
           <Route path="/ajustes/cuentas" element={<AccountsScreen />} />
@@ -66,7 +69,23 @@ function AnimatedRoutes() {
   )
 }
 
+/** Registra recurrentes y suscripciones vencidos al abrir la app y al volver a ella. */
+function useRecurringRunner() {
+  useEffect(() => {
+    const run = () => {
+      runRecurring().then((n) => {
+        if (n > 0) toast(n === 1 ? '1 movimiento recurrente registrado' : `${n} movimientos recurrentes registrados`)
+      })
+    }
+    run()
+    const onVisible = () => document.visibilityState === 'visible' && run()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
+}
+
 export function App() {
+  useRecurringRunner()
   return (
     <MotionConfig reducedMotion="user">
       <HashRouter>
@@ -75,6 +94,8 @@ export function App() {
         <AddButton />
         <TransactionSheet />
         <ToastHost />
+        <ConfettiHost />
+        <GoalWatcher />
         <DevIphoneOverlay />
       </HashRouter>
     </MotionConfig>

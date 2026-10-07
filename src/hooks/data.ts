@@ -52,3 +52,22 @@ export function useLedger() {
   const ready = !!(accounts && categories && transactions)
   return { ready, accounts: accounts ?? [], categories: categories ?? [], transactions: transactions ?? [], accountMap, categoryMap, balances }
 }
+
+export function useBudgets() {
+  return useLiveQuery(() => db.budgets.toArray())
+}
+
+export function useGoals() {
+  return useLiveQuery(async () => (await db.goals.toArray()).sort(byOrder))
+}
+
+export function useGoalEntries() {
+  return useLiveQuery(() => db.goalEntries.toArray())
+}
+
+export function useRules(kind?: 'recurring' | 'subscription') {
+  return useLiveQuery(async () => {
+    const all = kind ? await db.recurring.where('kind').equals(kind).toArray() : await db.recurring.toArray()
+    return all.sort((a, b) => (a.nextDate < b.nextDate ? -1 : a.nextDate > b.nextDate ? 1 : a.name.localeCompare(b.name)))
+  }, [kind])
+}

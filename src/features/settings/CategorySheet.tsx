@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { removeCategory, saveCategory } from '../../db/repo'
 import type { Category, CategoryKind, ColorName } from '../../db/types'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
@@ -7,6 +7,7 @@ import { Group, Row } from '../../components/ui/List'
 import { ActionSheet, Sheet, SheetButton } from '../../components/ui/Sheet'
 import { toast } from '../../components/ui/Toast'
 import { StyleFields } from './StyleFields'
+import { useOnOpen } from '../../hooks/useOnOpen'
 
 export function CategorySheet({
   open,
@@ -25,13 +26,12 @@ export function CategorySheet({
   const [fixed, setFixed] = useState(false)
   const [confirm, setConfirm] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
+  useOnOpen(open, () => {
     setName(category?.name ?? '')
     setIcon(category?.icon ?? (kind === 'income' ? 'Coins' : 'ShoppingBag'))
     setColor(category?.color ?? 'blue')
     setFixed(category?.fixed ?? false)
-  }, [open, category, kind])
+  })
 
   const save = async () => {
     await saveCategory({

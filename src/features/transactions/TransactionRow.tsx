@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CreditCard, Users } from 'lucide-react'
+import { ArrowLeftRight, CreditCard, Repeat, Users } from 'lucide-react'
 import { ui } from '../../app/uiStore'
 import { deleteTransaction, restoreTransaction } from '../../db/repo'
 import type { Account, Category, Transaction } from '../../db/types'
@@ -78,6 +78,7 @@ export function TransactionRow({ tx, categoryMap, accountMap, perspective }: Pro
           {d.subtitle && (
             <div className="flex items-center gap-1 truncate text-[15px] leading-5 text-label-2">
               {tx.split && <Users size={13} strokeWidth={2} className="shrink-0" />}
+              {tx.recurringId && <Repeat size={13} strokeWidth={2} className="shrink-0" aria-label="Recurrente" />}
               <span className="truncate">{d.subtitle}</span>
             </div>
           )}
