@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
-import { ChartPie } from 'lucide-react'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { ConfettiHost } from '../components/ui/Confetti'
 import { toast, ToastHost } from '../components/ui/Toast'
@@ -17,13 +16,17 @@ import { RecurringScreen } from '../features/planning/RecurringScreen'
 import { SubscriptionsScreen } from '../features/planning/SubscriptionsScreen'
 import { AccountDetailScreen } from '../features/accounts/AccountDetailScreen'
 import { HomeScreen } from '../features/home/HomeScreen'
-import { Placeholder } from '../features/Placeholder'
 import { AccountsScreen } from '../features/settings/AccountsScreen'
 import { CategoriesScreen } from '../features/settings/CategoriesScreen'
 import { SettingsScreen } from '../features/settings/SettingsScreen'
 import { TransactionSheet } from '../features/transactions/TransactionSheet'
 import { TransactionsScreen } from '../features/transactions/TransactionsScreen'
 import { AddButton, TabBar } from './TabBar'
+
+// Las pantallas con gráficos se cargan aparte para que la app arranque más rápido
+const StatsScreen = lazy(() => import('../features/stats/StatsScreen').then((m) => ({ default: m.StatsScreen })))
+const HealthScreen = lazy(() => import('../features/stats/HealthScreen').then((m) => ({ default: m.HealthScreen })))
+const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<div className="min-h-dvh" />}>{children}</Suspense>
 
 const TAB_ROOTS = ['/', '/movimientos', '/estadisticas', '/planificacion', '/ajustes']
 
@@ -47,16 +50,8 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/movimientos" element={<TransactionsScreen />} />
-          <Route
-            path="/estadisticas"
-            element={
-              <Placeholder
-                title="Estadísticas"
-                icon={<ChartPie size={28} strokeWidth={1.5} />}
-                message="Gráficos de gasto por categoría, ingresos vs gastos, patrimonio y tu puntaje de salud financiera llegan en la fase 4."
-              />
-            }
-          />
+          <Route path="/estadisticas" element={<Lazy><StatsScreen /></Lazy>} />
+          <Route path="/estadisticas/salud" element={<Lazy><HealthScreen /></Lazy>} />
           <Route path="/planificacion" element={<PlanningScreen />} />
           <Route path="/planificacion/presupuestos" element={<BudgetsScreen />} />
           <Route path="/planificacion/metas" element={<GoalsScreen />} />
