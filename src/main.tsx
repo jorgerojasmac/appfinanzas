@@ -16,7 +16,16 @@ if (import.meta.env.DEV) {
 // Pedir almacenamiento persistente para reducir el riesgo de que el sistema borre los datos
 navigator.storage?.persist?.().catch(() => {})
 
-registerSW({ immediate: true })
+// La app instalada busca versiones nuevas al abrirse, al volver a ella y cada hora
+registerSW({
+  immediate: true,
+  onRegisteredSW(_url, registration) {
+    if (!registration) return
+    const check = () => registration.update().catch(() => {})
+    setInterval(check, 60 * 60 * 1000)
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && check())
+  },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

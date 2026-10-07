@@ -16,11 +16,15 @@ import { cardDebt, isLiquid, totalsForMonth } from '../../domain/ledger'
 import { formatMoney } from '../../domain/money'
 import { accountBalanceLabel, ACCOUNT_TYPE_LABEL } from '../accounts/accountLabels'
 import { TransactionRow } from '../transactions/TransactionRow'
+import { useCardSummaries } from '../cards/CardsScreen'
+import { CardVisual } from '../cards/CardVisual'
+import { paymentText } from '../cards/cardText'
 
 export function HomeScreen() {
   const navigate = useNavigate()
   const { ready, accounts, transactions, balances, accountMap, categoryMap } = useLedger()
   const month = currentMonth()
+  const cards = useCardSummaries()
 
   const summary = useMemo(() => {
     const active = accounts.filter((a) => !a.archived)
@@ -102,6 +106,32 @@ export function HomeScreen() {
         </div>
         <MonthHint income={thisMonth.income} expense={thisMonth.expense} progress={monthProgress} />
       </Card>
+
+      {/* Tarjetas de crédito al estilo Wallet */}
+      {cards.length > 0 && (
+        <section>
+          <SectionTitle
+            title="Tarjetas"
+            action={
+              <Link to="/planificacion/tarjetas" className="text-[17px] text-blue">
+                Ver todas
+              </Link>
+            }
+          />
+          <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+            {cards.map(({ card, summary }) => {
+              const p = paymentText(summary)
+              return (
+                <div key={card.id} className={`shrink-0 snap-center ${cards.length > 1 ? 'w-[86%]' : 'w-full'}`}>
+                  <CardVisual card={card} summary={summary} onClick={() => navigate(`/cuentas/${card.id}`)} />
+                  <p className={`mt-2 px-1 text-[15px] font-semibold ${p.tone}`}>{p.title}</p>
+                  <p className="px-1 text-[13px] text-label-2">{p.detail}</p>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {transactions.length === 0 ? (
         <Card>
