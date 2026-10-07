@@ -70,6 +70,8 @@ export interface SplitShare {
   /** 'me' o el id de una persona */
   who: string
   amount: Cents
+  /** % ingresado (solo en modo porcentaje) */
+  percent?: number
 }
 
 export interface Split {
@@ -176,6 +178,17 @@ export interface RecurringRule {
   review?: boolean
   icon?: string
   color?: ColorName
+  sample?: boolean
+  createdAt: number
+}
+
+/** Persona con la que comparto gastos. */
+export interface Person {
+  id: string
+  name: string
+  color: ColorName
+  order: number
+  archived: boolean
   sample?: boolean
   createdAt: number
 }

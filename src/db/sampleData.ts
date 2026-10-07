@@ -6,7 +6,8 @@ import { addMonths, currentMonth, dateInMonth, daysInMonth, todayISO, type Month
 import { setSetting } from './repo'
 import { db, newId } from './schema'
 import { defaultAccounts, slug } from './seed'
-import type { Account, Budget, Goal, GoalEntry, RecurringRule, Transaction } from './types'
+import type { Account, Budget, Goal, GoalEntry, Person, RecurringRule, Transaction } from './types'
+import { buildSplit, ME } from '../domain/shared'
 
 const MONTHS_BACK = 8
 
@@ -131,7 +132,45 @@ export function buildSampleTransactions(today = todayISO()): Transaction[] {
     // Retiro de efectivo
     add({ type: 'transfer', amount: 10000, date: day(2), accountId: bank, toAccountId: cash, note: 'Retiro cajero' })
   }
+  addSharedSamples(txs, today, now)
   return txs
+}
+
+export const SAMPLE_PEOPLE: Person[] = [
+  { id: 'sample-ana', name: 'Ana', color: 'orange', order: 0, archived: false, sample: true, createdAt: 0 },
+  { id: 'sample-carlos', name: 'Carlos', color: 'teal', order: 1, archived: false, sample: true, createdAt: 0 },
+]
+
+/** Cenas divididas entre tres, compras de la casa que paga Ana y liquidaciones. */
+function addSharedSamples(txs: Transaction[], today: string, now: number) {
+  const r = rng(7)
+  const between = (a: number, b: number) => Math.round((a + r() * (b - a)) * 100)
+  const start = addMonths(currentMonth(), -MONTHS_BACK)
+  const push = (t: Omit<Transaction, 'id' | 'tags' | 'sample' | 'createdAt' | 'updatedAt'>) => {
+    if (t.date > today) return
+    txs.push({ ...t, id: newId(), tags: [], sample: true, createdAt: now + txs.length, updatedAt: now })
+  }
+  for (let i = 0; i <= MONTHS_BACK; i++) {
+    const m = addMonths(start, i)
+    const isLast = i >= MONTHS_BACK - 1
+    // Cena entre tres que pago yo desde el banco
+    const dinner = between(60, 120)
+    const r3 = buildSplit(dinner, { mode: 'equal', paidBy: ME, participants: [ME, 'sample-ana', 'sample-carlos'], values: {} })
+    if (r3.ok) {
+      push({ type: 'expense', amount: dinner, myAmount: r3.myAmount, accountId: 'acc-banco', categoryId: slug('Restaurantes'), date: dateInMonth(m, 4), note: 'Cena con amigos', split: r3.split })
+      // Carlos devuelve su parte al final de cada mes (salvo los dos últimos)
+      if (!isLast) {
+        const carlos = r3.split.shares.find((x) => x.who === 'sample-carlos')!.amount
+        push({ type: 'settlement', amount: carlos, myAmount: 0, accountId: 'acc-banco', personId: 'sample-carlos', settleDirection: 'received', date: dateInMonth(m, 27), note: '' })
+      }
+    }
+    // Compras de la casa que paga Ana, a medias
+    if (i % 2 === 0) {
+      const groceries = between(80, 140)
+      const r2 = buildSplit(groceries, { mode: 'equal', paidBy: 'sample-ana', participants: [ME, 'sample-ana'], values: {} })
+      if (r2.ok) push({ type: 'expense', amount: groceries, myAmount: r2.myAmount, categoryId: slug('Alimentación'), date: dateInMonth(m, 3), note: 'Compras de la casa', split: r2.split })
+    }
+  }
 }
 
 /** Próxima fecha con ese día del mes, a partir de mañana (para no duplicar el historial). */
@@ -208,7 +247,7 @@ function buildSampleGoals(): { goals: Goal[]; entries: GoalEntry[] } {
   }
 }
 
-const SAMPLE_TABLES = () => [db.accounts, db.transactions, db.settings, db.budgets, db.goals, db.goalEntries, db.recurring]
+const SAMPLE_TABLES = () => [db.accounts, db.transactions, db.settings, db.budgets, db.goals, db.goalEntries, db.recurring, db.people]
 
 export async function loadSampleData() {
   await db.transaction('rw', SAMPLE_TABLES(), async () => {
@@ -223,6 +262,7 @@ export async function loadSampleData() {
     }
     await db.transactions.bulkAdd(buildSampleTransactions())
     await db.recurring.bulkPut(buildSampleRules())
+    await db.people.bulkPut(SAMPLE_PEOPLE.map((p) => ({ ...p, createdAt: now })))
     // Un presupuesto por categoría: los de ejemplo no pisan presupuestos reales
     for (const b of buildSampleBudgets()) {
       if (!(await db.budgets.where('categoryId').equals(b.categoryId).count())) await db.budgets.add(b)
@@ -241,6 +281,7 @@ async function clearSampleRows() {
   await db.goals.filter((g) => !!g.sample).delete()
   await db.goalEntries.filter((e) => !!e.sample).delete()
   await db.recurring.filter((r) => !!r.sample).delete()
+  await db.people.filter((p) => !!p.sample).delete()
 }
 
 export async function clearSampleData() {

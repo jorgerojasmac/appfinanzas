@@ -27,12 +27,15 @@ export function AccountSheet({
   onClose,
   account,
   currentBalance,
+  defaultType,
 }: {
   open: boolean
   onClose: () => void
   account?: Account
   /** Saldo actual calculado con los movimientos (solo al editar) */
   currentBalance?: number
+  /** Tipo inicial al crear (por ejemplo desde Tarjetas) */
+  defaultType?: AccountType
 }) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -49,11 +52,12 @@ export function AccountSheet({
   useOnOpen(open, () => {
     const a = account
     setName(a?.name ?? '')
-    setType(a?.type ?? 'bank')
+    const t = a?.type ?? defaultType ?? 'bank'
+    setType(t)
     // En tarjetas se ingresa la deuda como número positivo
     setOpening(a ? centsToInput(a.type === 'credit' ? -a.openingBalance : a.openingBalance) : '')
-    setIcon(a?.icon ?? 'Landmark')
-    setColor(a?.color ?? 'blue')
+    setIcon(a?.icon ?? DEFAULT_ACCOUNT_ICON[t])
+    setColor(a?.color ?? DEFAULT_COLOR[t])
     setLimit(a?.creditLimit ? centsToInput(a.creditLimit) : '')
     setStatementDay(a?.statementDay ? String(a.statementDay) : '')
     setDueDay(a?.dueDay ? String(a.dueDay) : '')

@@ -9,6 +9,10 @@ import { BudgetsScreen } from '../features/planning/BudgetsScreen'
 import { GoalsScreen } from '../features/planning/GoalsScreen'
 import { GoalWatcher } from '../features/planning/GoalWatcher'
 import { PlanningScreen } from '../features/planning/PlanningScreen'
+import { CardsScreen } from '../features/cards/CardsScreen'
+import { SharedScreen } from '../features/shared/SharedScreen'
+import { SettleSheet } from '../features/shared/SettleSheet'
+import { PeopleProvider } from './PeopleContext'
 import { RecurringScreen } from '../features/planning/RecurringScreen'
 import { SubscriptionsScreen } from '../features/planning/SubscriptionsScreen'
 import { AccountDetailScreen } from '../features/accounts/AccountDetailScreen'
@@ -58,6 +62,8 @@ function AnimatedRoutes() {
           <Route path="/planificacion/metas" element={<GoalsScreen />} />
           <Route path="/planificacion/suscripciones" element={<SubscriptionsScreen />} />
           <Route path="/planificacion/recurrentes" element={<RecurringScreen />} />
+          <Route path="/planificacion/tarjetas" element={<CardsScreen />} />
+          <Route path="/planificacion/compartidos" element={<SharedScreen />} />
           <Route path="/ajustes" element={<SettingsScreen />} />
           <Route path="/ajustes/categorias" element={<CategoriesScreen />} />
           <Route path="/ajustes/cuentas" element={<AccountsScreen />} />
@@ -88,16 +94,19 @@ export function App() {
   useRecurringRunner()
   return (
     <MotionConfig reducedMotion="user">
+      <PeopleProvider>
       <HashRouter>
         <AnimatedRoutes />
         <TabBar />
         <AddButton />
         <TransactionSheet />
+        <SettleSheet />
         <ToastHost />
         <ConfettiHost />
         <GoalWatcher />
         <DevIphoneOverlay />
       </HashRouter>
+      </PeopleProvider>
     </MotionConfig>
   )
 }

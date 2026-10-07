@@ -1,5 +1,5 @@
 import { db, newId } from './schema'
-import type { Account, Category, Transaction } from './types'
+import type { Account, Category, Person, Transaction } from './types'
 
 export type TxInput = Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
 
@@ -13,12 +13,17 @@ export function normalizeTx(input: TxInput): TxInput {
     t.myAmount = 0
   } else {
     t.toAccountId = undefined
+    if (t.type !== 'expense') t.split = undefined
+    // Si pagó otra persona, no sale dinero de ninguna cuenta mía
+    if (t.split && t.split.paidBy !== 'me') t.accountId = undefined
     if (!t.split) t.myAmount = t.amount
     t.myAmount = Math.min(Math.abs(Math.round(t.myAmount)), t.amount)
   }
   if (t.type !== 'settlement') {
     t.personId = undefined
     t.settleDirection = undefined
+  } else if (!t.settleDirection) {
+    t.settleDirection = 'received'
   }
   t.note = (t.note ?? '').trim()
   t.tags = Array.from(new Set((t.tags ?? []).map((x) => x.trim().toLowerCase()).filter(Boolean)))
@@ -104,4 +109,29 @@ export async function getSetting<T>(key: string): Promise<T | undefined> {
 
 export async function setSetting(key: string, value: unknown) {
   await db.settings.put({ key, value })
+}
+
+// ---------- Personas (gastos compartidos) ----------
+
+export async function savePerson(p: { id?: string; name: string; color: Person['color'] }) {
+  if (p.id) {
+    await db.people.update(p.id, { name: p.name, color: p.color })
+    return p.id
+  }
+  const id = newId()
+  await db.people.add({ id, name: p.name, color: p.color, order: await db.people.count(), archived: false, createdAt: Date.now() })
+  return id
+}
+
+/** Borra la persona si no tiene movimientos; si los tiene, la archiva. */
+export async function removePerson(id: string): Promise<'deleted' | 'archived'> {
+  const used = (await db.transactions.toArray()).some(
+    (t) => t.personId === id || t.split?.paidBy === id || t.split?.shares.some((s) => s.who === id),
+  )
+  if (used) {
+    await db.people.update(id, { archived: true })
+    return 'archived'
+  }
+  await db.people.delete(id)
+  return 'deleted'
 }

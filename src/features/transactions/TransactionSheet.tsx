@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowLeftRight, Calendar, ChevronDown, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight, Calendar, ChevronDown, Trash2, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { personName, usePeopleMap } from '../../app/PeopleContext'
 import { ui, useUI } from '../../app/uiStore'
+import { Avatar } from '../../components/ui/Avatar'
+import { buildSplit, draftFromSplit, ME, type SplitDraft } from '../../domain/shared'
+import { SplitSheet } from '../shared/SplitSheet'
 import { deleteTransaction, getSetting, restoreTransaction, saveTransaction } from '../../db/repo'
 import type { Account, Category, TxType } from '../../db/types'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
@@ -9,9 +13,9 @@ import { Segmented } from '../../components/ui/Controls'
 import { applyKey, NumPad } from '../../components/ui/NumPad'
 import { Sheet, SheetButton } from '../../components/ui/Sheet'
 import { toast } from '../../components/ui/Toast'
-import { useLedger } from '../../hooks/data'
+import { useLedger, usePeople } from '../../hooks/data'
 import { addDays, formatDateShort, todayISO } from '../../domain/dates'
-import { centsToInput, parseMoney } from '../../domain/money'
+import { centsToInput, formatMoney, parseMoney } from '../../domain/money'
 import { AccountPicker } from '../accounts/AccountPicker'
 
 type Kind = Exclude<TxType, 'settlement'>
@@ -48,6 +52,10 @@ function TransactionSheetInner() {
   const [note, setNote] = useState('')
   const [picker, setPicker] = useState<null | 'from' | 'to'>(null)
   const [shake, setShake] = useState(0)
+  const [split, setSplit] = useState<SplitDraft>()
+  const [splitOpen, setSplitOpen] = useState(false)
+  const people = usePeople() ?? []
+  const peopleMap = usePeopleMap()
 
   const active = useMemo(() => accounts.filter((a) => !a.archived), [accounts])
 
@@ -62,15 +70,18 @@ function TransactionSheetInner() {
       setToAccountId(edit.toAccountId)
       setDate(edit.date)
       setNote(edit.note)
+      setSplit(edit.split ? draftFromSplit(edit.split) : undefined)
       return
     }
-    setType((txSheet.type as Kind) ?? 'expense')
-    setAmount('')
+    const preset = txSheet.preset ?? {}
+    setType(preset.type && preset.type !== 'settlement' ? preset.type : 'expense')
+    setAmount(preset.amount ? centsToInput(preset.amount) : '')
     setCategoryId(undefined)
     setDate(todayISO())
-    setNote('')
-    setToAccountId(undefined)
+    setNote(preset.note ?? '')
+    setToAccountId(preset.toAccountId)
     setAccountId(undefined)
+    setSplit(undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txSheet.open])
 
@@ -81,13 +92,13 @@ function TransactionSheetInner() {
     getSetting<string>('lastAccountId').then((last) => {
       if (cancelled) return
       const fallback = active.find((a) => a.type === 'bank') ?? active[0]
-      const preferred = txSheet.accountId ?? (last && active.some((a) => a.id === last) ? last : fallback?.id)
+      const preferred = txSheet.preset?.accountId ?? (last && active.some((a) => a.id === last) ? last : fallback?.id)
       setAccountId(preferred)
     })
     return () => {
       cancelled = true
     }
-  }, [txSheet.open, txSheet.accountId, edit, accountId, active])
+  }, [txSheet.open, txSheet.preset, edit, accountId, active])
 
   // Categorías del tipo actual, las más usadas (últimos 90 días) primero
   const sortedCategories = useMemo(() => {
@@ -104,9 +115,14 @@ function TransactionSheetInner() {
   }, [categories, transactions, type, categoryId])
 
   const cents = parseMoney(amount)
+  const activeSplit = type === 'expense' ? split : undefined
+  const splitResult = activeSplit ? buildSplit(cents, activeSplit) : null
+  // Si pagó otra persona, no se usa ninguna cuenta mía
+  const othersPaid = !!activeSplit && activeSplit.paidBy !== ME
   const valid =
     cents > 0 &&
-    !!accountId &&
+    (othersPaid || !!accountId) &&
+    (!splitResult || splitResult.ok) &&
     (type === 'transfer' ? !!toAccountId && toAccountId !== accountId : !!categoryId)
 
   const changeType = (t: Kind) => {
@@ -132,21 +148,19 @@ function TransactionSheetInner() {
       setShake((s) => s + 1)
       return
     }
-    // Si el gasto ya estaba dividido, se mantiene la proporción de mi parte
-    const split = edit?.split && type === 'expense' ? edit.split : undefined
-    const myAmount = split && edit ? Math.round((edit.myAmount / edit.amount) * cents) : cents
+    const result = splitResult && splitResult.ok ? splitResult : null
     await saveTransaction({
       id: edit?.id,
       type,
       amount: cents,
-      myAmount,
-      accountId,
+      myAmount: result ? result.myAmount : cents,
+      accountId: othersPaid ? undefined : accountId,
       toAccountId: type === 'transfer' ? toAccountId : undefined,
       categoryId: type === 'transfer' ? undefined : categoryId,
       date,
       note,
       tags: edit?.tags ?? [],
-      split,
+      split: result?.split,
       recurringId: edit?.recurringId,
       sample: edit?.sample,
     })
@@ -216,6 +230,15 @@ function TransactionSheetInner() {
                   <ArrowDown size={16} className="shrink-0 -rotate-90 text-label-3" />
                   <Chip onClick={() => setPicker('to')} account={to} placeholder="Hacia" />
                 </>
+              ) : othersPaid ? (
+                <button
+                  type="button"
+                  onClick={() => setSplitOpen(true)}
+                  className="pressable flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-card pr-3 pl-1.5 text-[15px]"
+                >
+                  <Avatar name={personName(activeSplit!.paidBy, peopleMap)} color={peopleMap.get(activeSplit!.paidBy)?.color} size={28} />
+                  <span className="truncate">Pagó {personName(activeSplit!.paidBy, peopleMap)}</span>
+                </button>
               ) : (
                 <Chip onClick={() => setPicker('from')} account={from} placeholder="Cuenta" />
               )}
@@ -231,7 +254,31 @@ function TransactionSheetInner() {
                 className="h-10 min-w-0 flex-1 rounded-full bg-card px-4 text-[16px] outline-none placeholder:text-label-3"
               />
               <DateChip value={date} onChange={setDate} />
+              {type === 'expense' && (
+                <button
+                  type="button"
+                  aria-label="Dividir gasto"
+                  onClick={() => setSplitOpen(true)}
+                  className={`pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${activeSplit ? 'bg-blue text-white' : 'bg-card text-label-2'}`}
+                >
+                  <Users size={18} strokeWidth={1.75} />
+                </button>
+              )}
             </div>
+            {activeSplit && (
+              <button
+                type="button"
+                onClick={() => setSplitOpen(true)}
+                className={`flex w-full items-center gap-1.5 px-1 text-left text-[13px] ${splitResult?.ok ? 'text-label-2' : 'text-red'}`}
+              >
+                <Users size={14} strokeWidth={2} className="shrink-0" />
+                <span className="truncate">
+                  {splitResult?.ok
+                    ? `Dividido entre ${activeSplit.participants.length} · tu parte ${formatMoney(splitResult.myAmount)}`
+                    : `Revisa la división: ${splitResult && !splitResult.ok ? splitResult.error : ''}`}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Categorías o explicación de la transferencia */}
@@ -261,6 +308,14 @@ function TransactionSheetInner() {
         </div>
       </Sheet>
 
+      <SplitSheet
+        open={splitOpen}
+        onClose={() => setSplitOpen(false)}
+        total={cents}
+        people={people}
+        draft={split}
+        onApply={setSplit}
+      />
       <AccountPicker
         open={picker !== null}
         onClose={() => setPicker(null)}

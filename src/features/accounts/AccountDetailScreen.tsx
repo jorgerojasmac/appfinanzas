@@ -9,6 +9,9 @@ import { NavButton, Screen } from '../../components/ui/Screen'
 import { useLedger } from '../../hooks/data'
 import { formatMoney } from '../../domain/money'
 import { TransactionList } from '../transactions/TransactionList'
+import { CardDetails } from '../cards/CardDetails'
+import { summarizeCard } from '../../domain/cards'
+import { todayISO } from '../../domain/dates'
 import { ACCOUNT_TYPE_LABEL, SAVINGS_PURPOSE_LABEL } from './accountLabels'
 import { AccountSheet } from './AccountSheet'
 
@@ -37,13 +40,16 @@ export function AccountDetailScreen() {
   return (
     <Screen
       title={account.name}
-      back="Inicio"
+      back
       right={
         <NavButton label="Editar cuenta" onClick={() => setEditing(true)}>
           <Pencil size={20} strokeWidth={1.75} />
         </NavButton>
       }
     >
+      {isCard ? (
+        <CardDetails card={account} summary={summarizeCard(account, transactions, todayISO())} />
+      ) : (
       <Card className="flex flex-col items-center py-6 text-center">
         <CategoryIcon icon={account.icon} color={account.color} size={56} />
         <p className="mt-3 text-[15px] text-label-2">
@@ -64,6 +70,7 @@ export function AccountDetailScreen() {
           </p>
         ) : null}
       </Card>
+      )}
 
       {txs.length === 0 ? (
         <EmptyState icon={<Inbox size={28} strokeWidth={1.5} />} title="Sin movimientos" message="Los movimientos de esta cuenta aparecerán aquí." />

@@ -71,3 +71,10 @@ export function useRules(kind?: 'recurring' | 'subscription') {
     return all.sort((a, b) => (a.nextDate < b.nextDate ? -1 : a.nextDate > b.nextDate ? 1 : a.name.localeCompare(b.name)))
   }, [kind])
 }
+
+export function usePeople(includeArchived = false) {
+  return useLiveQuery(async () => {
+    const all = (await db.people.toArray()).sort(byOrder)
+    return includeArchived ? all : all.filter((p) => !p.archived)
+  }, [includeArchived])
+}

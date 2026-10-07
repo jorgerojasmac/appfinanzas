@@ -1,10 +1,16 @@
-import { CalendarClock, ChevronRight, Repeat, Scale, Target } from 'lucide-react'
+import { CalendarClock, ChevronRight, CreditCard, Repeat, Scale, Target, Users } from 'lucide-react'
+import { Avatar } from '../../components/ui/Avatar'
+import { useCardSummaries } from '../cards/CardsScreen'
+import { paymentText } from '../cards/cardText'
+import { IDEAL_USAGE, totalUsage } from '../../domain/cards'
+import { personBalances } from '../../domain/shared'
+import { balanceLabel } from '../shared/SharedScreen'
 import { useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
 import { ProgressBar, ProgressRing } from '../../components/ui/Progress'
 import { Screen } from '../../components/ui/Screen'
-import { useBudgets, useGoalEntries, useGoals, useLedger, useRules } from '../../hooks/data'
+import { useBudgets, useGoalEntries, useGoals, useLedger, usePeople, useRules } from '../../hooks/data'
 import { goalSavedMap, useBudgetLines, useIncomeBase } from '../../hooks/planning'
 import { budgetTone, TONE_COLOR } from '../../domain/budgets'
 import { currentMonth, formatDayHeader, formatMonth } from '../../domain/dates'
@@ -55,6 +61,11 @@ export function PlanningScreen() {
   const { lines, totalLimit, totalSpent } = useBudgetLines(budgets, categoryMap, transactions, month, base.effective)
   const saved = useMemo(() => goalSavedMap(goals, entries, balances), [goals, entries, balances])
   const subTotals = subscriptionTotals(subs)
+  const cards = useCardSummaries()
+  const usage = totalUsage(cards.map((c) => c.summary))
+  const people = usePeople() ?? []
+  const pBalances = useMemo(() => personBalances(transactions), [transactions])
+  const withBalance = people.filter((p) => (pBalances.get(p.id) ?? 0) !== 0)
 
   const atRisk = [...lines]
     .filter((l) => l.limit)
@@ -97,6 +108,37 @@ export function PlanningScreen() {
               ))}
             </div>
           </>
+        )}
+      </Section>
+
+      <Section title="Tarjetas de crédito" icon={<CreditCard size={18} />} color="var(--indigo)" to="/planificacion/tarjetas">
+        {cards.length === 0 ? (
+          <p className="text-[15px] leading-5 text-label-2">Agrega tus tarjetas para ver cupo, fecha de corte y cuánto pagar.</p>
+        ) : (
+          <div className="space-y-2.5">
+            {usage != null && (
+              <div>
+                <div className="flex justify-between text-[13px]">
+                  <span>Uso del cupo</span>
+                  <span className="tabular text-label-2">{Math.round(usage * 100)}% · ideal &lt; 30%</span>
+                </div>
+                <ProgressBar ratio={usage} color={usage <= IDEAL_USAGE ? 'var(--green)' : usage <= 0.5 ? 'var(--yellow)' : 'var(--red)'} height={5} />
+              </div>
+            )}
+            {cards.map(({ card, summary }) => {
+              const p = paymentText(summary)
+              return (
+                <div key={card.id} className="flex items-center gap-2.5">
+                  <CategoryIcon icon={card.icon} color={card.color} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px]">{card.name}</p>
+                    <p className={`truncate text-[13px] ${p.tone === 'text-label' ? 'text-label-2' : p.tone}`}>{p.title}</p>
+                  </div>
+                  <span className="tabular text-[15px] text-label-2">{formatMoney(summary.debt)}</span>
+                </div>
+              )
+            })}
+          </div>
         )}
       </Section>
 
@@ -168,7 +210,26 @@ export function PlanningScreen() {
         )}
       </Section>
 
-      <p className="px-4 text-center text-[13px] text-label-3">Tarjetas de crédito y gastos compartidos llegan en la fase 3.</p>
+      <Section title="Gastos compartidos" icon={<Users size={18} />} color="var(--orange)" to="/planificacion/compartidos">
+        {people.length === 0 ? (
+          <p className="text-[15px] leading-5 text-label-2">Divide gastos con amigos o tu pareja y lleva la cuenta de quién debe a quién.</p>
+        ) : withBalance.length === 0 ? (
+          <p className="text-[15px] leading-5 text-label-2">Estás al día con todos.</p>
+        ) : (
+          <div className="space-y-2">
+            {withBalance.slice(0, 4).map((p) => {
+              const l = balanceLabel(pBalances.get(p.id) ?? 0)
+              return (
+                <div key={p.id} className="flex items-center gap-2.5">
+                  <Avatar name={p.name} color={p.color} size={28} />
+                  <span className="flex-1 truncate text-[15px]">{p.name}</span>
+                  <span className={`tabular text-[13px] ${l.cls}`}>{l.text}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Section>
     </Screen>
   )
 }

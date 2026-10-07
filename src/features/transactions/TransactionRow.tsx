@@ -1,7 +1,8 @@
 import { ArrowLeftRight, CreditCard, Repeat, Users } from 'lucide-react'
 import { ui } from '../../app/uiStore'
 import { deleteTransaction, restoreTransaction } from '../../db/repo'
-import type { Account, Category, Transaction } from '../../db/types'
+import { personName, usePeopleMap } from '../../app/PeopleContext'
+import type { Account, Category, Person, Transaction } from '../../db/types'
 import { CategoryIcon } from '../../components/ui/CategoryIcon'
 import { SwipeRow } from '../../components/ui/SwipeRow'
 import { toast } from '../../components/ui/Toast'
@@ -22,7 +23,12 @@ export async function deleteWithUndo(id: string) {
 }
 
 /** Describe un movimiento para mostrarlo en listas. */
-export function describeTx(tx: Transaction, categoryMap: Map<string, Category>, accountMap: Map<string, Account>) {
+export function describeTx(
+  tx: Transaction,
+  categoryMap: Map<string, Category>,
+  accountMap: Map<string, Account>,
+  people: Map<string, Person> = new Map(),
+) {
   const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined
   const from = tx.accountId ? accountMap.get(tx.accountId) : undefined
   const to = tx.toAccountId ? accountMap.get(tx.toAccountId) : undefined
@@ -38,11 +44,12 @@ export function describeTx(tx: Transaction, categoryMap: Map<string, Category>, 
     }
   }
   if (tx.type === 'settlement') {
+    const name = tx.personId ? personName(tx.personId, people) : 'Alguien'
     return {
       icon: 'Users',
       color: 'gray' as const,
-      title: tx.note || 'Saldar cuentas',
-      subtitle: from?.name ?? '',
+      title: tx.settleDirection === 'received' ? `${name} te pagó` : `Le pagaste a ${name}`,
+      subtitle: [tx.note, from?.name].filter(Boolean).join(' · '),
       Fallback: Users,
     }
   }
@@ -50,7 +57,10 @@ export function describeTx(tx: Transaction, categoryMap: Map<string, Category>, 
     icon: cat?.icon ?? 'Ellipsis',
     color: cat?.color ?? ('gray' as const),
     title: tx.note || cat?.name || 'Sin categoría',
-    subtitle: [tx.note ? cat?.name : null, from?.name ?? (tx.split ? 'Pagó otra persona' : null)]
+    subtitle: [
+      tx.note ? cat?.name : null,
+      tx.split && tx.split.paidBy !== 'me' ? `Pagó ${personName(tx.split.paidBy, people)}` : from?.name,
+    ]
       .filter(Boolean)
       .join(' · '),
     Fallback: null,
@@ -58,7 +68,8 @@ export function describeTx(tx: Transaction, categoryMap: Map<string, Category>, 
 }
 
 export function TransactionRow({ tx, categoryMap, accountMap, perspective }: Props) {
-  const d = describeTx(tx, categoryMap, accountMap)
+  const people = usePeopleMap()
+  const d = describeTx(tx, categoryMap, accountMap, people)
   let { value, tone } = displayAmount(tx)
   if (perspective && tx.type === 'transfer') {
     value = tx.accountId === perspective ? -tx.amount : tx.amount
@@ -86,7 +97,9 @@ export function TransactionRow({ tx, categoryMap, accountMap, perspective }: Pro
         <div className="shrink-0 text-right">
           <div className={`tabular text-[17px] ${color}`}>{formatMoney(value, { sign: !!sign })}</div>
           {tx.split && tx.type === 'expense' && (
-            <div className="tabular text-[13px] text-label-2">de {formatMoney(tx.amount)}</div>
+            <div className="tabular text-[13px] text-label-2">
+              {tx.myAmount === 0 ? `prestado ${formatMoney(tx.amount)}` : `de ${formatMoney(tx.amount)}`}
+            </div>
           )}
         </div>
       </button>

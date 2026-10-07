@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Account, Budget, Category, Goal, GoalEntry, RecurringRule, Setting, Transaction } from './types'
+import type { Account, Budget, Category, Goal, GoalEntry, Person, RecurringRule, Setting, Transaction } from './types'
 import { defaultAccounts, defaultCategories } from './seed'
 
 export class FinanzasDB extends Dexie {
@@ -11,6 +11,7 @@ export class FinanzasDB extends Dexie {
   goals!: EntityTable<Goal, 'id'>
   goalEntries!: EntityTable<GoalEntry, 'id'>
   recurring!: EntityTable<RecurringRule, 'id'>
+  people!: EntityTable<Person, 'id'>
 
   constructor(name = 'finanzas') {
     super(name)
@@ -28,6 +29,10 @@ export class FinanzasDB extends Dexie {
       goals: 'id, order',
       goalEntries: 'id, goalId, date',
       recurring: 'id, kind, nextDate',
+    })
+    // Fase 3: personas para gastos compartidos
+    this.version(3).stores({
+      people: 'id, order',
     })
 
     // Primera apertura: categorías y cuentas iniciales
