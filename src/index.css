@@ -1,0 +1,220 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens de color inspirados en los colores semánticos de iOS.
+ * Se redefinen en modo oscuro, así que las clases (bg-card, text-label…)
+ * se adaptan solas.
+ */
+:root {
+  --bg: #f2f2f7; /* systemGroupedBackground */
+  --card: #ffffff; /* secondarySystemGroupedBackground */
+  --card-2: #f2f2f7; /* tertiarySystemGroupedBackground */
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, 0.6);
+  --label-3: rgba(60, 60, 67, 0.3);
+  --separator: rgba(60, 60, 67, 0.29);
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-2: rgba(120, 120, 128, 0.2);
+  --bar: rgba(249, 249, 249, 0.78);
+  --backdrop: rgba(0, 0, 0, 0.3);
+
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --yellow: #ffcc00;
+  --green: #34c759;
+  --mint: #00c7be;
+  --teal: #30b0c7;
+  --cyan: #32ade6;
+  --blue: #007aff;
+  --indigo: #5856d6;
+  --purple: #af52de;
+  --pink: #ff2d55;
+  --brown: #a2845e;
+  --gray: #8e8e93;
+
+  /* Opacidad del círculo detrás de los iconos de categoría */
+  --tint-alpha: 15%;
+
+  /* Safe areas (Dynamic Island arriba, indicador de inicio abajo) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  --nav-h: 44px;
+  --tab-h: 49px;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --card-2: #2c2c2e;
+    --label: #ffffff;
+    --label-2: rgba(235, 235, 245, 0.6);
+    --label-3: rgba(235, 235, 245, 0.3);
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-2: rgba(118, 118, 128, 0.32);
+    --bar: rgba(22, 22, 23, 0.78);
+    --backdrop: rgba(0, 0, 0, 0.55);
+
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --yellow: #ffd60a;
+    --green: #30d158;
+    --mint: #63e6e2;
+    --teal: #40c8e0;
+    --cyan: #64d2ff;
+    --blue: #0a84ff;
+    --indigo: #5e5ce6;
+    --purple: #bf5af2;
+    --pink: #ff375f;
+    --brown: #ac8e68;
+    --gray: #98989d;
+
+    --tint-alpha: 22%;
+  }
+}
+
+/* Modo desarrollo: simula los insets del iPhone 15 Pro (?sim=1) */
+html.sim-iphone {
+  --sat: 59px;
+  --sab: 34px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-label: var(--label);
+  --color-label-2: var(--label-2);
+  --color-label-3: var(--label-3);
+  --color-separator: var(--separator);
+  --color-fill: var(--fill);
+  --color-fill-2: var(--fill-2);
+  --color-bar: var(--bar);
+  --color-red: var(--red);
+  --color-orange: var(--orange);
+  --color-yellow: var(--yellow);
+  --color-green: var(--green);
+  --color-mint: var(--mint);
+  --color-teal: var(--teal);
+  --color-cyan: var(--cyan);
+  --color-blue: var(--blue);
+  --color-indigo: var(--indigo);
+  --color-purple: var(--purple);
+  --color-pink: var(--pink);
+  --color-brown: var(--brown);
+  --color-gray: var(--gray);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui,
+    'Helvetica Neue', sans-serif;
+  --font-rounded: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--label);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.29;
+    letter-spacing: -0.41px;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Los inputs de 16px o más evitan el zoom automático de iOS */
+  input,
+  select,
+  textarea {
+    font-size: 17px;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pt-safe {
+    padding-top: var(--sat);
+  }
+
+  .pb-safe {
+    padding-bottom: var(--sab);
+  }
+
+  .material-bar {
+    background: var(--bar);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  .hairline-b {
+    box-shadow: inset 0 -0.5px 0 var(--separator);
+  }
+
+  .hairline-t {
+    box-shadow: inset 0 0.5px 0 var(--separator);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .pressable {
+    transition:
+      background-color 0.15s,
+      opacity 0.15s,
+      transform 0.15s;
+  }
+  .pressable:active {
+    opacity: 0.6;
+  }
+}
+
+/* Listas agrupadas: separadores finos con sangría, como en Ajustes de iOS */
+.grouped > * {
+  position: relative;
+}
+.grouped > * + *::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--sep-inset, 16px);
+  height: 0.5px;
+  background: var(--separator);
+  z-index: 2;
+  pointer-events: none;
+}
